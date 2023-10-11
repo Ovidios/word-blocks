@@ -1,0 +1,111 @@
+<html>
+    <head>
+        <script>
+            const intial_colors = ["#feefcf", "#feb4b3", "#e6a849", "#c46946", "#6b2c40"];
+            function hex2rgba(hex) {
+                const [r, g, b] = hex.match(/\w\w/g).map(x => parseInt(x, 16));
+                return {r:r, g:g, b:b};
+            };
+            function bin2hex(b) {
+                return b.match(/.{4}/g).reduce(function(acc, i) {
+                    return acc + parseInt(i, 2).toString(16);
+                }, '')
+            }
+            function add_pal()
+            {
+                var li = document.createElement("li");
+                li.classList.add("palette");
+                reset_pal(li);
+                document.querySelector(".palettelist").appendChild(li);
+            }
+            function reset_pal(li)
+            {
+                li.innerHTML = "";
+
+                add_colors(li);
+
+                del = document.createElement("button");
+                del.innerHTML = "Reset";
+                del.onclick = (e) => reset_pal(e.target.parentElement);
+                li.appendChild(del);
+            }
+            function add_colors(li)
+            {
+                for(var i=0; i<5; i++)
+                {
+                    var col = document.createElement("input");
+                    col.type = "color";
+                    col.value = intial_colors[i];
+                    li.appendChild(col);
+                    li.append(" ");
+                }
+            }
+            function to_bgr555(r, g, b)
+            {
+                // get to range [0-31] and round down
+                r = Math.round(r/255*31);
+                g = Math.round(g/255*31);
+                b = Math.round(b/255*31);
+
+                // convert to binary
+                r = r.toString(2).padStart(5,"0");
+                g = g.toString(2).padStart(5,"0");
+                b = b.toString(2).padStart(5,"0");
+                
+                // put it all together
+                var bin = `0${b}${g}${r}`;
+
+                // convert to hex
+                return "0x" + bin2hex(bin);
+            }
+            function save()
+            {
+                var s = "#include <gb/gb.h>\n\n";
+                var pals = document.getElementsByClassName("palette");
+                for (var i = 0; i < pals.length; i++) {
+                    s += `const uint16_t pal_${i}[] = {`
+                    var pal = pals[i];
+                    var colors = pal.getElementsByTagName("input");
+                    for (var e = 0; e<5; e++) {
+                        var c = hex2rgba(colors[e].value);
+                        console.log(c);
+                        s += `${to_bgr555(c.r, c.g, c.b)},`;
+                    }
+                    s += "};\n";
+                }
+                download("palettes.c", s);
+            }
+            function download(filename, text) {
+                var element = document.createElement('a');
+                element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+                element.setAttribute('download', filename);
+
+                element.style.display = 'none';
+                document.body.appendChild(element);
+
+                element.click();
+
+                document.body.removeChild(element);
+            }
+        </script>
+        <style>
+            .content {
+                max-width: 600px;
+                margin: 32px auto;
+            }
+            .palette button {
+                height: 27px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="content">
+            <h1>Palette Picker</h1>
+            <hr>
+            <button onclick="add_pal()">Add Palette</button> <button onclick="save()">Save To File</button>
+            <hr>
+            <h2>Palettes</h2> 
+            <ol class="palettelist" start="0"></ol>
+        </div>
+    </body>
+</html>
